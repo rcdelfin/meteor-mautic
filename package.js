@@ -1,7 +1,7 @@
 Package.describe({
   name: "rcdelfin:mautic",
   summary: "A OAuth2 wrapper for the Mautic API",
-  version: "0.0.1",
+  version: "0.0.2",
   git: "https://github.com/rcdelfin/mautic.git"
 });
 
