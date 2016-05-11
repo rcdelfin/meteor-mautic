@@ -4,19 +4,21 @@ OAuth.registerService('mautic', 2, null, function(query) {
 
   var response = getTokenResponse(query);
   var accessToken = response.accessToken;
+  var refreshToken = response.refreshToken;
   var identity =  {
-    id: Math.random(),
-    name: Math.random()
+    id: Random.id(),
+    name: 'mautic'
   };
 
   var id = identity.id;
   if (!id) {
-    throw new Error("Mautic did not provide an id");    
+    throw new Error("Mautic did not provide an id");
   }
   var serviceData = {
     id: id,
     accessToken: accessToken,
-    expiresAt: (+new Date) + (1000 * response.expiresIn)
+    expiresAt: (+new Date) + (1000 * response.expiresIn),
+    refreshToken: refreshToken
   };
 
   return {
@@ -50,7 +52,7 @@ var getTokenResponse = function (query) {
   try {
     if(Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined && Meteor.settings.public.mautic.baseUrl !== undefined) {
 
-      var baseUrl = Meteor.settings.public.mautic.baseUrl;    
+      var baseUrl = Meteor.settings.public.mautic.baseUrl;
       //Request an access token
       responseContent = Meteor.http.post(
         baseUrl + "/oauth/v2/token", {params: {
@@ -62,7 +64,7 @@ var getTokenResponse = function (query) {
         }}).content;
     } else {
       console.log("public.mautic.baseUrl has not been set in your settings.json file.")
-    }      
+    }
   } catch (err) {
     throw new Error("Failed to complete OAuth handshake with Mautic. " + err.message);
   }
@@ -76,6 +78,7 @@ var getTokenResponse = function (query) {
   var parsedResponse = JSON.parse(responseContent);
   var accessToken = parsedResponse.access_token;
   var expiresIn = parsedResponse.expires_in;
+  var refreshToken = parsedResponse.refresh_token;
 
   if (!accessToken) {
     throw new Error("Failed to complete OAuth handshake with Mautic " +
@@ -84,7 +87,8 @@ var getTokenResponse = function (query) {
 
   return {
     accessToken: accessToken,
-    expiresIn: expiresIn
+    expiresIn: expiresIn,
+    refreshToken: refreshToken
   };
 };
 
