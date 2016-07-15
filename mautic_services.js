@@ -3,32 +3,40 @@ Meteor.methods({
     var user = Meteor.users.findOne(Meteor.userId);
     return user ? user.services.mautic : [];
   },
-  'mautic.leads' (callback) {
-    this.unblock();
+  'mautic/get' (endpoint, params, callback) {
     Mautic.refreshAccessToken();
     var response;
     try {
-      var baseUrl = Meteor.settings.public.mautic.baseUrl + '/api/leads';
+      var baseUrl = Meteor.settings.public.mautic.baseUrl + '/api' + endpoint;
       var account = Meteor.call('mautic.account');
-      response = Meteor.http.get(baseUrl, {
+      if (!account) {
+        response = {};
+        return;
+      }
+      var payload = {
         params: {
           access_token: account.accessToken
         }
-      });
+      };
+      if (typeof params === 'object') {
+        payload = _.extend(payload, params);
+      }
+      response = HTTP.get(baseUrl, payload).content;
     } catch (err) {
       throw _.extend(new Error("Failed to load Mautic leads. " + err.message), {
         response: err.response
       });
     }
 
-    if (!isJSON(response.content)) {
-      throw new Error("Failed to load Mautic leads. ", response.content);
+    if (!isJSON(response)) {
+      throw new Error("Failed to load Mautic leads. ", response);
     }
 
-    if (typeof callback === 'function') {
-      callback(response.content);
+    var fn = (typeof params === 'function') ? params : callback;
+    if (typeof fn === 'function') {
+      fn(response);
     } else {
-      return response.content;
+      return response;
     }
   }
 });
