@@ -3,10 +3,12 @@ Meteor.methods({
     var user = Meteor.users.findOne(Meteor.userId);
     return user ? user.services.mautic : [];
   },
-  'mautic/get' (endpoint, params, callback) {
+  'mautic/api' (endpoint, params, callback) {
     Mautic.refreshAccessToken();
     var response;
     try {
+      this.unblock();
+
       var baseUrl = Meteor.settings.public.mautic.baseUrl + '/api' + endpoint;
       var account = Meteor.call('mautic.account');
       if (!account) {
@@ -18,10 +20,15 @@ Meteor.methods({
           access_token: account.accessToken
         }
       };
+      var httpMethod = 'GET';
       if (typeof params === 'object') {
         payload = _.extend(payload, params);
+        if (!_.isUndefined(params.method)) {
+          httpMethod = params.method;
+          delete params.method;
+        }
       }
-      response = HTTP.get(baseUrl, payload).content;
+      response = HTTP.call(httpMethod, baseUrl, payload).content;
     } catch (err) {
       throw _.extend(new Error("Failed to load Mautic leads. " + err.message), {
         response: err.response

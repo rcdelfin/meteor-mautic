@@ -22,20 +22,20 @@ if (Meteor.isClient) {
 
     var scope = [];
     if (options && options.requestPermissions) {
-        scope = options.requestPermissions.join('+');
+      scope = options.requestPermissions.join('+');
     }
 
-    var loginStyle = OAuth._loginStyle('mautic', config, options);
+    loginStyle = OAuth._loginStyle('mautic', config, options);
 
-    if(Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined && Meteor.settings.public.mautic.baseUrl !== undefined) {
+    if (Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined && Meteor.settings.public.mautic.baseUrl !== undefined) {
 
       var baseUrl = Meteor.settings.public.mautic.baseUrl;
       var loginUrl = baseUrl + '/oauth/v2/authorize' +
-            '?client_id=' + config.clientId +
-            '&grant_type=authorization_code' +
-            '&redirect_uri=' + OAuth._redirectUri('mautic', config) +
-            '&response_type=code' +
-            '&state=' + OAuth._stateParam(loginStyle, credentialToken);
+        '?client_id=' + config.clientId +
+        '&grant_type=authorization_code' +
+        '&redirect_uri=' + OAuth._redirectUri('mautic', config) +
+        '&response_type=code' +
+        '&state=' + OAuth._stateParam(loginStyle, credentialToken);
 
       OAuth.launchLogin({
         loginService: "mautic",
@@ -45,13 +45,13 @@ if (Meteor.isClient) {
         credentialToken: credentialToken
       });
     } else {
-        console.log("public.mautic.baseUrl has not been set in your settings.json file.")
+      console.log("public.mautic.baseUrl has not been set in your settings.json file.");
     }
   };
 }
 
 if (Meteor.isServer) {
-  Mautic.refreshAccessToken = function() {
+  Mautic.refreshAccessToken = function () {
     var baseUrl = Meteor.settings.public.mautic.baseUrl + '/oauth/v2/token';
     var config = Accounts.loginServiceConfiguration.findOne({service: 'mautic'});
 
@@ -79,8 +79,7 @@ if (Meteor.isServer) {
     var accessToken = parsedResponse.access_token;
     var expiresIn = parsedResponse.expires_in;
     var refreshToken = parsedResponse.refresh_token;
-    var mauticData = {
-      id: Random.id(),
+    var mauticService = {
       accessToken: accessToken,
       expiresAt: (+new Date) + (1000 * expiresIn),
       refreshToken: refreshToken
@@ -90,6 +89,6 @@ if (Meteor.isServer) {
       throw new Error("Failed to complete OAuth handshake with Mautic " +
         "-- can't find access token in HTTP response. " + responseContent);
     }
-    Meteor.users.update({_id: Meteor.userId}, {$set: {services: {mautic: mauticData}}});
+    Meteor.users.upsert({_id: Meteor.userId}, {$set: {'services.mautic': mauticService}});
   };
 }

@@ -9,4 +9,4 @@ isJSON = function(str) {
   } catch (e) {
     return false;
   }
-}
+};

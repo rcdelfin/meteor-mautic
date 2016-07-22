@@ -9,6 +9,12 @@ OAuth.registerService('mautic', 2, null, function(query) {
     id: Random.id(),
     name: 'mautic'
   };
+  var userData = getIdentity(accessToken);
+  identity = _.extend(identity, {
+    id: userData.id,
+    name: userData.firstName + ' ' + userData.lastName,
+    email: userData.email
+  });
 
   var id = identity.id;
   if (!id) {
@@ -20,7 +26,6 @@ OAuth.registerService('mautic', 2, null, function(query) {
     expiresAt: (+new Date) + (1000 * response.expiresIn),
     refreshToken: refreshToken
   };
-
   return {
     serviceData: serviceData,
     options: {
@@ -38,7 +43,7 @@ var isJSON = function (str) {
   } catch (e) {
     return false;
   }
-}
+};
 
 // returns an object containing:
 // - accessToken
@@ -90,6 +95,22 @@ var getTokenResponse = function (query) {
     expiresIn: expiresIn,
     refreshToken: refreshToken
   };
+};
+
+var getIdentity = function (accessToken) {
+  var responseContent;
+  try {
+    var baseUrl = Meteor.settings.public.mautic.baseUrl + '/api/users/self';
+    var payload = {
+      params: {
+        access_token: accessToken
+      }
+    };
+    responseContent = HTTP.get(baseUrl, payload).data;
+  } catch (err) {
+    throw new Error("Failed to complete OAuth logged account. " + err.message);
+  }
+  return responseContent;
 };
 
 Mautic.retrieveCredential = function(credentialToken, credentialSecret) {
