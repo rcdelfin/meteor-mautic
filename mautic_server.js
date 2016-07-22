@@ -13,7 +13,8 @@ OAuth.registerService('mautic', 2, null, function(query) {
   identity = _.extend(identity, {
     id: userData.id,
     name: userData.firstName + ' ' + userData.lastName,
-    email: userData.email
+    email: userData.email,
+    service: 'mautic'
   });
 
   var id = identity.id;

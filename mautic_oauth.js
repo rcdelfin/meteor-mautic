@@ -89,6 +89,6 @@ if (Meteor.isServer) {
       throw new Error("Failed to complete OAuth handshake with Mautic " +
         "-- can't find access token in HTTP response. " + responseContent);
     }
-    Meteor.users.upsert({_id: Meteor.userId}, {$set: {'services.mautic': mauticService}});
+    Meteor.users.upsert({_id: Meteor.userId}, {$set: {'services.mautic': mauticService, 'profile.service': 'mautic'}});
   };
 }
