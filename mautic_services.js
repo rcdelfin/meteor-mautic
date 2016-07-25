@@ -30,7 +30,7 @@ Meteor.methods({
       }
       response = HTTP.call(httpMethod, baseUrl, payload).content;
     } catch (err) {
-      throw _.extend(new Error("Failed to load Mautic leads. " + err.message), {
+      throw _.extend(new Error("Failed to load Mautic content(s). " + err.message), {
         response: err.response
       });
     }
@@ -39,11 +39,11 @@ Meteor.methods({
       throw new Error("Failed to load Mautic leads. ", response);
     }
 
-    var fn = (typeof params === 'function') ? params : callback;
-    if (typeof fn === 'function') {
-      fn(response);
-    } else {
-      return response;
+    if (!callback && typeof params === 'function') {
+      callback = params;
+      return callback(response);
     }
+
+    return response;
   }
 });
