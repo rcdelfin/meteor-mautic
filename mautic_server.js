@@ -14,7 +14,7 @@ OAuth.registerService('mautic', 2, null, function(query) {
     id: userData.id,
     name: userData.firstName + ' ' + userData.lastName,
     email: userData.email,
-    service: 'mautic'
+    services: 'mautic'
   });
 
   var id = identity.id;
@@ -22,7 +22,6 @@ OAuth.registerService('mautic', 2, null, function(query) {
     throw new Error("Mautic did not provide an id");
   }
   var serviceData = {
-    id: id,
     accessToken: accessToken,
     expiresAt: (+new Date) + (1000 * response.expiresIn),
     refreshToken: refreshToken
@@ -56,7 +55,8 @@ var getTokenResponse = function (query) {
 
   var responseContent;
   try {
-    if(Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined && Meteor.settings.public.mautic.baseUrl !== undefined) {
+    if(Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined
+      && Meteor.settings.public.mautic.baseUrl !== undefined) {
 
       var baseUrl = Meteor.settings.public.mautic.baseUrl;
       //Request an access token

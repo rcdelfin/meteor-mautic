@@ -13,7 +13,9 @@ if (Meteor.isClient) {
 
     var config = ServiceConfiguration.configurations.findOne({service: 'mautic'});
     if (!config) {
-      credentialRequestCompleteCallback && credentialRequestCompleteCallback(new ServiceConfiguration.ConfigError("Service not configured"));
+      credentialRequestCompleteCallback && credentialRequestCompleteCallback(
+        new ServiceConfiguration.ConfigError("Service not configured")
+      );
       return;
     }
 
@@ -27,9 +29,19 @@ if (Meteor.isClient) {
 
     loginStyle = OAuth._loginStyle('mautic', config, options);
 
-    if (Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined && Meteor.settings.public.mautic.baseUrl !== undefined) {
-
+    var launchLogin = function () {
       var baseUrl = Meteor.settings.public.mautic.baseUrl;
+
+      if (!_.isEmpty(options)) {
+        baseUrl = options.baseUrl;
+        config = {
+          "service" : "mautic",
+          "clientId" : options.clientId,
+          "secret" : options.secret,
+          "loginStyle" : "popup"
+        };
+      }
+
       var loginUrl = baseUrl + '/oauth/v2/authorize' +
         '?client_id=' + config.clientId +
         '&grant_type=authorization_code' +
@@ -44,6 +56,11 @@ if (Meteor.isClient) {
         credentialRequestCompleteCallback: credentialRequestCompleteCallback,
         credentialToken: credentialToken
       });
+    };
+
+    if (Meteor.settings && Meteor.settings.public !== undefined && Meteor.settings.public.mautic !== undefined
+      && Meteor.settings.public.mautic.baseUrl !== undefined) {
+      launchLogin();
     } else {
       console.log("public.mautic.baseUrl has not been set in your settings.json file.");
     }
@@ -51,13 +68,26 @@ if (Meteor.isClient) {
 }
 
 if (Meteor.isServer) {
-  Mautic.refreshAccessToken = function () {
-    var baseUrl = Meteor.settings.public.mautic.baseUrl + '/oauth/v2/token';
+  Mautic.refreshAccessToken = function (options) {
     var config = Accounts.loginServiceConfiguration.findOne({service: 'mautic'});
+
+    var baseUrl = Meteor.settings.public.mautic.baseUrl;
+    if (!_.isUndefined(options.baseUrl)) {
+      baseUrl = options.baseUrl;
+      config = {
+        "_id": config._id,
+        "service" : "mautic",
+        "clientId" : options.clientId,
+        "secret" : options.secret,
+        "loginStyle" : "popup"
+      };
+    }
+
+    var mauticUrl = baseUrl + '/oauth/v2/token';
 
     var responseContent;
     try {
-      var account = Meteor.call('mautic.account');
+      var account = Meteor.user().services.mautic;
       if (account) {
         var params = {
           params: {
@@ -68,10 +98,11 @@ if (Meteor.isServer) {
             redirect_uri: OAuth._redirectUri('mautic', config),
           }
         };
-        responseContent = Meteor.http.post(baseUrl, params).content;
+        responseContent = Meteor.http.post(mauticUrl, params).content;
       }
     } catch (err) {
-      throw _.extend(new Error("Failed to complete OAuth handshake with Mautic. " + err.message), {response: err.response});
+      throw _.extend(new Error("Failed to complete OAuth handshake with Mautic. " + err.message),
+        {response: err.response});
     }
 
     // Success! Extract access token and expiration
@@ -89,6 +120,6 @@ if (Meteor.isServer) {
       throw new Error("Failed to complete OAuth handshake with Mautic " +
         "-- can't find access token in HTTP response. " + responseContent);
     }
-    Meteor.users.upsert({_id: Meteor.userId}, {$set: {'services.mautic': mauticService, 'profile.service': 'mautic'}});
+    Meteor.users.upsert({_id: Meteor.userId}, {$set: {'services.mautic': mauticService}});
   };
 }

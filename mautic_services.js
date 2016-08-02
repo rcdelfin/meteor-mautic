@@ -1,16 +1,20 @@
 Meteor.methods({
-  'mautic.account' () {
-    var user = Meteor.users.findOne(Meteor.userId);
-    return user ? user.services.mautic : [];
-  },
   'mautic/api' (endpoint, params, callback) {
-    Mautic.refreshAccessToken();
     var response;
+    var paramsCopy = _.clone(params);
     try {
       this.unblock();
 
-      var baseUrl = Meteor.settings.public.mautic.baseUrl + '/api' + endpoint;
-      var account = Meteor.call('mautic.account');
+      var baseUrl = Meteor.settings.public.mautic.baseUrl;
+      if (!_.isUndefined(params.baseUrl)) {
+        baseUrl = params.baseUrl;
+        delete params.baseUrl;
+        delete params.clientId;
+        delete params.secret;
+      }
+
+      var mauticUrl = baseUrl + '/api' + endpoint;
+      var account = Meteor.user().services.mautic;
       if (!account) {
         response = {};
         return;
@@ -22,14 +26,29 @@ Meteor.methods({
       };
       var httpMethod = 'GET';
       if (typeof params === 'object') {
-        payload = _.extend(payload, params);
         if (!_.isUndefined(params.method)) {
           httpMethod = params.method;
           delete params.method;
         }
+        if (!_.isEmpty(params.data)) {
+          if (!_.isUndefined(params.data.ip)) {
+            params.data.ip = this.connection.clientAddress;
+          }
+        }
       }
-      response = HTTP.call(httpMethod, baseUrl, payload).content;
+      payload = _.extend(payload, params);
+      response = HTTP.call(httpMethod, mauticUrl, payload).content;
     } catch (err) {
+      var options = {};
+      if (!_.isUndefined(paramsCopy.baseUrl)) {
+        options = {
+          baseUrl: paramsCopy.baseUrl,
+          clientId: paramsCopy.clientId,
+          secret: paramsCopy.secret
+        }
+      }
+      Mautic.refreshAccessToken(options);
+
       throw _.extend(new Error("Failed to load Mautic content(s). " + err.message), {
         response: err.response
       });
@@ -41,9 +60,9 @@ Meteor.methods({
 
     if (!callback && typeof params === 'function') {
       callback = params;
-      return callback(response);
+      return callback(JSON.parse(response));
     }
 
-    return response;
+    return JSON.parse(response);
   }
 });
