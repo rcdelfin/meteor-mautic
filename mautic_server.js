@@ -22,10 +22,12 @@ OAuth.registerService('mautic', 2, null, function(query) {
     throw new Error("Mautic did not provide an id");
   }
   var serviceData = {
+    id: identity.id,
     accessToken: accessToken,
     expiresAt: (+new Date) + (1000 * response.expiresIn),
     refreshToken: refreshToken
   };
+
   return {
     serviceData: serviceData,
     options: {
